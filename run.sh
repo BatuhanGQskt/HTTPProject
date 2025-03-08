@@ -43,8 +43,14 @@ run_executable() {
 
   # Run the executable
   echo -e "${GREEN}Starting Networking application...${NC}"
-  ./Networking.exe || { echo -e "${RED}Execution failed! Current folder is $PWD ${NC}"; return 42;}
   
+  if [[ "$OSTYPE" == "msys" ]]; then
+    ./Networking.exe || { echo -e "${RED}Execution failed! Current folder is $PWD ${NC}"; return 42;}
+  elif
+    [[ "$OSTYPE" == "linux-gnu" ]]; then
+    ./Networking || { echo -e "${RED}Execution failed! Current folder is $PWD ${NC}"; return 42;}
+  fi
+
   # Return to original directory
   cd ../..
   return 0;  # Return 0 for success, not 1
@@ -69,7 +75,6 @@ elif [[ "$first_arg" == "combined" ]]; then
     # Check if build was successful before running
     if [[ $ret -ne 0 ]]; then
         echo -e "${RED}An error occurred in building! Error code: $ret ${NC}"
-        return ;
     fi
     
     # If build was successful, run the executable

@@ -49,6 +49,48 @@ namespace olc {
                 return msg;
             }
 
+            // Fix for >> operator with memcpy
+            template<typename DataType>
+            friend message& operator >> (message& msg, DataType& data)
+            {
+                // Check if we have enough data to read
+                static_assert(std::is_standard_layout<DataType>::value, 
+                    "Data type must have standard layout for memcpy safety");
+                
+                size_t i = msg.body.size() - sizeof(DataType);
+
+                std::memcpy(&data, msg.body.data() + i, sizeof(DataType));
+                
+                msg.body.resize(i);
+
+                msg.header.size = msg.size();
+
+                return msg;
+            }
+
+            // Special handler for std::string to avoid memcpy issues
+            friend message& operator >> (message& msg, std::string& data)
+            {
+                uint16_t length = 0;
+                msg >> length; // Extract string length first (assuming you have a >> op for uint16_t)
+                
+                data.resize(length);
+                
+                // For strings, copy character by character to avoid memcpy type issues
+                if (msg.m_read_pos + length <= msg.body.size())
+                {
+                    // Use std::copy instead of memcpy for better type safety with strings
+                    std::copy(
+                        msg.body.begin() + msg.m_read_pos,
+                        msg.body.begin() + msg.m_read_pos + length,
+                        data.begin()
+                    );
+                    
+                    msg.m_read_pos += length;
+                }
+                
+                return msg;
+            }
         };
     }
 }
